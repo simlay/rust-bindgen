@@ -85,9 +85,13 @@ impl ObjCInterface {
             if self.is_protocol {
                 format!("protocol_{}", self.name())
             } else {
-                self.name().to_owned()
+                format!("class_{}", self.name().to_owned())
             }
         }
+    }
+
+    pub fn struct_name(&self) -> String {
+        format!("struct_{}", self.name().to_owned())
     }
 
     /// Is this a template interface?
@@ -98,6 +102,16 @@ impl ObjCInterface {
     /// List of the methods defined in this interface
     pub fn methods(&self) -> &Vec<ObjCMethod> {
         &self.methods
+    }
+
+    /// Is this a protocol?
+    pub fn is_protocol(&self) -> bool {
+        self.is_protocol
+    }
+
+    /// Is this a protocol?
+    pub fn is_category(&self) -> bool {
+        self.category.is_some()
     }
 
     /// List of the class methods defined in this interface
