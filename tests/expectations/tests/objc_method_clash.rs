@@ -12,15 +12,26 @@
 extern crate objc;
 #[allow(non_camel_case_types)]
 pub type id = *mut objc::runtime::Object;
-pub trait Foo {
-    unsafe fn foo(self);
-    unsafe fn class_foo();
+pub struct struct_Foo(id);
+impl std::ops::Deref for struct_Foo {
+    type Target = id;
+    fn deref(&self) -> &Self::Target {
+        unsafe { ::core::mem::transmute(self.0) }
+    }
 }
-impl Foo for id {
-    unsafe fn foo(self) {
+unsafe impl objc::Message for struct_Foo {}
+impl interface_Foo for struct_Foo {}
+pub trait interface_Foo: Sized + std::ops::Deref + objc::Message {
+    unsafe fn foo(self)
+    where
+        <Self as std::ops::Deref>::Target: objc::Message + Sized,
+    {
         msg_send!(self, foo)
     }
-    unsafe fn class_foo() {
+    unsafe fn class_foo()
+    where
+        <Self as std::ops::Deref>::Target: objc::Message + Sized,
+    {
         msg_send!(
             objc::runtime::Class::get("Foo").expect("Couldn't find Foo"),
             foo

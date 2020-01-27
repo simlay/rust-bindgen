@@ -12,44 +12,56 @@
 extern crate objc;
 #[allow(non_camel_case_types)]
 pub type id = *mut objc::runtime::Object;
-pub trait Foo {
-    unsafe fn method();
-    unsafe fn methodWithInt_(foo: ::std::os::raw::c_int);
-    unsafe fn methodWithFoo_(foo: id);
-    unsafe fn methodReturningInt() -> ::std::os::raw::c_int;
-    unsafe fn methodReturningFoo() -> *mut id;
-    unsafe fn methodWithArg1_andArg2_andArg3_(
-        intvalue: ::std::os::raw::c_int,
-        ptr: *mut ::std::os::raw::c_char,
-        floatvalue: f32,
-    );
+pub struct struct_Foo(id);
+impl std::ops::Deref for struct_Foo {
+    type Target = id;
+    fn deref(&self) -> &Self::Target {
+        unsafe { ::core::mem::transmute(self.0) }
+    }
 }
-impl Foo for id {
-    unsafe fn method() {
+unsafe impl objc::Message for struct_Foo {}
+impl interface_Foo for struct_Foo {}
+pub trait interface_Foo: Sized + std::ops::Deref + objc::Message {
+    unsafe fn method()
+    where
+        <Self as std::ops::Deref>::Target: objc::Message + Sized,
+    {
         msg_send!(
             objc::runtime::Class::get("Foo").expect("Couldn't find Foo"),
             method
         )
     }
-    unsafe fn methodWithInt_(foo: ::std::os::raw::c_int) {
+    unsafe fn methodWithInt_(foo: ::std::os::raw::c_int)
+    where
+        <Self as std::ops::Deref>::Target: objc::Message + Sized,
+    {
         msg_send!(
             objc::runtime::Class::get("Foo").expect("Couldn't find Foo"),
             methodWithInt: foo
         )
     }
-    unsafe fn methodWithFoo_(foo: id) {
+    unsafe fn methodWithFoo_(foo: id)
+    where
+        <Self as std::ops::Deref>::Target: objc::Message + Sized,
+    {
         msg_send!(
             objc::runtime::Class::get("Foo").expect("Couldn't find Foo"),
             methodWithFoo: foo
         )
     }
-    unsafe fn methodReturningInt() -> ::std::os::raw::c_int {
+    unsafe fn methodReturningInt() -> ::std::os::raw::c_int
+    where
+        <Self as std::ops::Deref>::Target: objc::Message + Sized,
+    {
         msg_send!(
             objc::runtime::Class::get("Foo").expect("Couldn't find Foo"),
             methodReturningInt
         )
     }
-    unsafe fn methodReturningFoo() -> *mut id {
+    unsafe fn methodReturningFoo() -> *mut id
+    where
+        <Self as std::ops::Deref>::Target: objc::Message + Sized,
+    {
         msg_send!(
             objc::runtime::Class::get("Foo").expect("Couldn't find Foo"),
             methodReturningFoo
@@ -59,7 +71,9 @@ impl Foo for id {
         intvalue: ::std::os::raw::c_int,
         ptr: *mut ::std::os::raw::c_char,
         floatvalue: f32,
-    ) {
+    ) where
+        <Self as std::ops::Deref>::Target: objc::Message + Sized,
+    {
         msg_send ! ( objc :: runtime :: Class :: get ( "Foo" ) . expect ( "Couldn't find Foo" ) , methodWithArg1 : intvalue andArg2 : ptr andArg3 : floatvalue )
     }
 }

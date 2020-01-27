@@ -31,7 +31,7 @@ pub struct ObjCInterface {
     /// The list of template names almost always, ObjectType or KeyType
     pub template_names: Vec<String>,
 
-    conforms_to: Vec<ItemId>,
+    pub conforms_to: Vec<ItemId>,
 
     /// List of the methods defined in this interfae
     methods: Vec<ObjCMethod>,
@@ -85,9 +85,13 @@ impl ObjCInterface {
             if self.is_protocol {
                 format!("protocol_{}", self.name())
             } else {
-                self.name().to_owned()
+                format!("interface_{}", self.name().to_owned())
             }
         }
+    }
+
+    pub fn struct_name(&self) -> String {
+        format!("struct_{}", self.name().to_owned())
     }
 
     /// Is this a template interface?
@@ -98,6 +102,16 @@ impl ObjCInterface {
     /// List of the methods defined in this interface
     pub fn methods(&self) -> &Vec<ObjCMethod> {
         &self.methods
+    }
+
+    /// Is this a protocol?
+    pub fn is_protocol(&self) -> bool {
+        self.is_protocol
+    }
+
+    /// Is this a protocol?
+    pub fn is_category(&self) -> bool {
+        self.category.is_some()
     }
 
     /// List of the class methods defined in this interface
@@ -140,7 +154,7 @@ impl ObjCInterface {
                                 TypeKind::ObjCInterface(ref protocol) => {
                                     if protocol.is_protocol
                                     {
-                                        debug!("Checking protocol {}, ty.name {:?}", protocol.name, ty.name());
+                                        println!("Checking protocol {}, ty.name {:?}", protocol.name, ty.name());
                                         if Some(needle.as_ref()) == ty.name() {
                                             debug!("Found conforming protocol {:?}", item);
                                             interface.conforms_to.push(id);

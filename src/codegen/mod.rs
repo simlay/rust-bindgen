@@ -3648,7 +3648,7 @@ fn objc_method_codegen(
         }
     } else {
         let fn_args = fn_args.clone();
-        let args = iter::once(quote! { self }).chain(fn_args.into_iter());
+        let args = iter::once(quote!{ self }).chain(fn_args.into_iter());
         quote! {
             ( #( #args ),* ) #fn_ret
         }
@@ -3678,7 +3678,7 @@ fn objc_method_codegen(
 
     (
         quote! {
-            unsafe fn #method_name #sig {
+            unsafe fn #method_name #sig where <Self as std::ops::Deref>::Target: objc::Message + Sized {
                 #body
             }
         },
@@ -3700,13 +3700,13 @@ impl CodeGenerator for ObjCInterface {
         debug_assert!(item.is_enabled_for_codegen(ctx));
 
         let mut impl_items = vec![];
-        let mut trait_items = vec![];
+        //let mut trait_items = vec![];
 
         for method in self.methods() {
-            let (impl_item, trait_item) =
+            let (impl_item, _trait_item) =
                 objc_method_codegen(ctx, method, None, "");
             impl_items.push(impl_item);
-            trait_items.push(trait_item)
+            //trait_items.push(trait_item)
         }
 
         let instance_method_names: Vec<_> =
@@ -3716,40 +3716,70 @@ impl CodeGenerator for ObjCInterface {
             let ambiquity =
                 instance_method_names.contains(&class_method.rust_name());
             let prefix = if ambiquity { "class_" } else { "" };
-            let (impl_item, trait_item) = objc_method_codegen(
+            let (impl_item, _trait_item) = objc_method_codegen(
                 ctx,
                 class_method,
                 Some(self.name()),
                 prefix,
             );
             impl_items.push(impl_item);
-            trait_items.push(trait_item)
+            //trait_items.push(trait_item)
         }
 
         let trait_name = ctx.rust_ident(self.rust_name());
-
+        let trait_constraints = quote! {
+            Sized + std::ops::Deref + objc::Message
+        };
         let trait_block = if self.is_template() {
             let template_names: Vec<Ident> = self
                 .template_names
                 .iter()
                 .map(|g| ctx.rust_ident(g))
                 .collect();
+
             quote! {
-                pub trait #trait_name <#(#template_names),*>{
-                    #( #trait_items )*
+                pub trait #trait_name <#(#template_names),*> : #trait_constraints {
+                    #( #impl_items )*
                 }
             }
         } else {
             quote! {
-                pub trait #trait_name {
-                    #( #trait_items )*
+                pub trait #trait_name : #trait_constraints {
+                    #( #impl_items )*
                 }
             }
         };
 
+        /*
         let ty_for_impl = quote! {
             id
         };
+        */
+        let struct_name = ctx.rust_ident(self.struct_name());
+        if !(self.is_category() || self.is_protocol()) {
+            let struct_block = quote! {
+                pub struct #struct_name(id);
+                impl std::ops::Deref for #struct_name {
+                    type Target = id;
+                    fn deref(&self) -> &Self::Target {
+                        // Both `self` and `NSObject` wrap an `id` pointer, so this should be safe
+                        //unsafe { self.0 }
+                        unsafe { ::core::mem::transmute(self.0) }
+                    }
+                }
+                unsafe impl objc::Message for #struct_name { }
+            };
+            result.push(struct_block);
+            for protocol in ctx.items().filter(|(id, _)| self.conforms_to.contains(id)).map(|(_, item)| item).collect::<Vec<&Item>>() {
+                let protocol_name = ctx.rust_ident(protocol.as_type().unwrap().name().unwrap());
+                let impl_trait = quote! {
+                    impl #protocol_name for #struct_name { }
+                };
+                result.push(impl_trait);
+            }
+        }
+        let ty_for_impl = struct_name;
+
         let impl_block = if self.is_template() {
             let template_names: Vec<Ident> = self
                 .template_names
@@ -3758,19 +3788,21 @@ impl CodeGenerator for ObjCInterface {
                 .collect();
             quote! {
                 impl <#(#template_names :'static),*> #trait_name <#(#template_names),*> for #ty_for_impl {
-                    #( #impl_items )*
+                    //#( #impl_items )*
                 }
             }
         } else {
             quote! {
                 impl #trait_name for #ty_for_impl {
-                    #( #impl_items )*
+                    //#( #impl_items )*
                 }
             }
         };
+        if !self.is_protocol() {
+            result.push(impl_block);
+        }
 
         result.push(trait_block);
-        result.push(impl_block);
         result.saw_objc();
     }
 }
