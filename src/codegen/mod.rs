@@ -3648,7 +3648,7 @@ fn objc_method_codegen(
         }
     } else {
         let fn_args = fn_args.clone();
-        let args = iter::once(quote! { self }).chain(fn_args.into_iter());
+        let args = iter::once(quote!{ self }).chain(fn_args.into_iter());
         quote! {
             ( #( #args ),* ) #fn_ret
         }
@@ -3678,7 +3678,7 @@ fn objc_method_codegen(
 
     (
         quote! {
-            unsafe fn #method_name #sig where <Self as std::ops::Deref>::Target: objc::Message + Sized + Self: std::ops::Deref {
+            unsafe fn #method_name #sig where <Self as std::ops::Deref>::Target: objc::Message + Sized {
                 #body
             }
         },
@@ -3755,6 +3755,7 @@ impl CodeGenerator for ObjCInterface {
         };
         */
         let struct_name = ctx.rust_ident(self.struct_name());
+        debug!("{:?} CONFORMS TO: {:?}", struct_name, self.conforms_to);
         if !(self.is_category() || self.is_protocol()) {
             let struct_block = quote! {
                 pub struct #struct_name(id);
@@ -3790,7 +3791,9 @@ impl CodeGenerator for ObjCInterface {
                 }
             }
         };
-        result.push(impl_block);
+        if !self.is_protocol() {
+            result.push(impl_block);
+        }
 
         result.push(trait_block);
         result.saw_objc();
