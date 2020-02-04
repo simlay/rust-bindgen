@@ -3729,7 +3729,6 @@ impl CodeGenerator for ObjCInterface {
                 prefix,
             );
             impl_items.push(impl_item);
-            //trait_items.push(trait_item)
         }
 
         let trait_name = ctx.rust_ident(self.rust_name());
