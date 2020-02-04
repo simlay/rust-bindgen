@@ -12,21 +12,44 @@
 extern crate objc;
 #[allow(non_camel_case_types)]
 pub type id = *mut objc::runtime::Object;
-pub trait Foo<ObjectType> {
-    unsafe fn get(self) -> u64;
+pub struct struct_Foo(id);
+impl std::ops::Deref for struct_Foo {
+    type Target = id;
+    fn deref(&self) -> &Self::Target {
+        unsafe { ::core::mem::transmute(self.0) }
+    }
 }
-impl<ObjectType: 'static> Foo<ObjectType> for id {
-    unsafe fn get(self) -> u64 {
+unsafe impl objc::Message for struct_Foo {}
+impl<ObjectType: 'static> interface_Foo<ObjectType> for struct_Foo {}
+pub trait interface_Foo<ObjectType>:
+    Sized + std::ops::Deref + objc::Message
+{
+    unsafe fn get(self) -> u64
+    where
+        <Self as std::ops::Deref>::Target: objc::Message + Sized,
+    {
         msg_send!(self, get)
     }
 }
-pub trait FooMultiGeneric<KeyType, ObjectType> {
-    unsafe fn objectForKey_(self, key: u64) -> u64;
+pub struct struct_FooMultiGeneric(id);
+impl std::ops::Deref for struct_FooMultiGeneric {
+    type Target = id;
+    fn deref(&self) -> &Self::Target {
+        unsafe { ::core::mem::transmute(self.0) }
+    }
 }
-impl<KeyType: 'static, ObjectType: 'static> FooMultiGeneric<KeyType, ObjectType>
-    for id
+unsafe impl objc::Message for struct_FooMultiGeneric {}
+impl<KeyType: 'static, ObjectType: 'static>
+    interface_FooMultiGeneric<KeyType, ObjectType> for struct_FooMultiGeneric
 {
-    unsafe fn objectForKey_(self, key: u64) -> u64 {
+}
+pub trait interface_FooMultiGeneric<KeyType, ObjectType>:
+    Sized + std::ops::Deref + objc::Message
+{
+    unsafe fn objectForKey_(self, key: u64) -> u64
+    where
+        <Self as std::ops::Deref>::Target: objc::Message + Sized,
+    {
         msg_send!(self, objectForKey: key)
     }
 }

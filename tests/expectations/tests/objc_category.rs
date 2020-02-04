@@ -12,19 +12,29 @@
 extern crate objc;
 #[allow(non_camel_case_types)]
 pub type id = *mut objc::runtime::Object;
-pub trait Foo {
-    unsafe fn method(self);
+pub struct struct_Foo(id);
+impl std::ops::Deref for struct_Foo {
+    type Target = id;
+    fn deref(&self) -> &Self::Target {
+        unsafe { ::core::mem::transmute(self.0) }
+    }
 }
-impl Foo for id {
-    unsafe fn method(self) {
+unsafe impl objc::Message for struct_Foo {}
+impl interface_Foo for struct_Foo {}
+pub trait interface_Foo: Sized + std::ops::Deref + objc::Message {
+    unsafe fn method(self)
+    where
+        <Self as std::ops::Deref>::Target: objc::Message + Sized,
+    {
         msg_send!(self, method)
     }
 }
-pub trait Foo_BarCategory {
-    unsafe fn categoryMethod(self);
-}
-impl Foo_BarCategory for id {
-    unsafe fn categoryMethod(self) {
+impl Foo_BarCategory for struct_Foo {}
+pub trait Foo_BarCategory: Sized + std::ops::Deref + objc::Message {
+    unsafe fn categoryMethod(self)
+    where
+        <Self as std::ops::Deref>::Target: objc::Message + Sized,
+    {
         msg_send!(self, categoryMethod)
     }
 }

@@ -1310,23 +1310,26 @@ impl<'a> FieldCodegen<'a> for BitfieldUnit {
         F: Extend<proc_macro2::TokenStream>,
         M: Extend<proc_macro2::TokenStream>,
     {
+        use ir::ty::RUST_DERIVE_IN_ARRAY_LIMIT;
+
         result.saw_bitfield_unit();
 
+        let layout = self.layout();
+        let unit_field_ty = helpers::bitfield_unit(ctx, layout);
         let field_ty = {
-            let ty = helpers::bitfield_unit(ctx, self.layout());
             if parent.is_union() && !parent.can_be_rust_union(ctx) {
                 result.saw_bindgen_union();
                 if ctx.options().enable_cxx_namespaces {
                     quote! {
-                        root::__BindgenUnionField<#ty>
+                        root::__BindgenUnionField<#unit_field_ty>
                     }
                 } else {
                     quote! {
-                        __BindgenUnionField<#ty>
+                        __BindgenUnionField<#unit_field_ty>
                     }
                 }
             } else {
-                ty
+                unit_field_ty.clone()
             }
         };
 
@@ -1338,16 +1341,21 @@ impl<'a> FieldCodegen<'a> for BitfieldUnit {
         };
         fields.extend(Some(field));
 
-        let unit_field_ty = helpers::bitfield_unit(ctx, self.layout());
-
         let ctor_name = self.ctor_name();
         let mut ctor_params = vec![];
         let mut ctor_impl = quote! {};
-        let mut generate_ctor = true;
+
+        // We cannot generate any constructor if the underlying storage can't
+        // implement AsRef<[u8]> / AsMut<[u8]> / etc.
+        let mut generate_ctor = layout.size <= RUST_DERIVE_IN_ARRAY_LIMIT;
 
         for bf in self.bitfields() {
             // Codegen not allowed for anonymous bitfields
             if bf.name().is_none() {
+                continue;
+            }
+
+            if layout.size > RUST_DERIVE_IN_ARRAY_LIMIT {
                 continue;
             }
 
@@ -1395,7 +1403,7 @@ impl<'a> FieldCodegen<'a> for BitfieldUnit {
             }));
         }
 
-        struct_layout.saw_bitfield_unit(self.layout());
+        struct_layout.saw_bitfield_unit(layout);
     }
 }
 
@@ -3700,13 +3708,11 @@ impl CodeGenerator for ObjCInterface {
         debug_assert!(item.is_enabled_for_codegen(ctx));
 
         let mut impl_items = vec![];
-        //let mut trait_items = vec![];
 
         for method in self.methods() {
             let (impl_item, _trait_item) =
                 objc_method_codegen(ctx, method, None, "");
             impl_items.push(impl_item);
-            //trait_items.push(trait_item)
         }
 
         let instance_method_names: Vec<_> =
@@ -3727,49 +3733,49 @@ impl CodeGenerator for ObjCInterface {
         }
 
         let trait_name = ctx.rust_ident(self.rust_name());
-
+        let trait_constraints = quote! {
+            Sized + std::ops::Deref + objc::Message
+        };
         let trait_block = if self.is_template() {
             let template_names: Vec<Ident> = self
                 .template_names
                 .iter()
                 .map(|g| ctx.rust_ident(g))
                 .collect();
+
             quote! {
-                pub trait #trait_name <#(#template_names),*> {
-                    //#( #trait_items )*
+                pub trait #trait_name <#(#template_names),*> : #trait_constraints {
                     #( #impl_items )*
                 }
             }
         } else {
             quote! {
-                pub trait #trait_name : Sized + std::ops::Deref + objc::Message {
-                    //#( #trait_items )*
+                pub trait #trait_name : #trait_constraints {
                     #( #impl_items )*
                 }
             }
         };
 
-        /*
-        let ty_for_impl = quote! {
-            id
-        };
-        */
         let struct_name = ctx.rust_ident(self.struct_name());
-        debug!("{:?} CONFORMS TO: {:?}", struct_name, self.conforms_to);
         if !(self.is_category() || self.is_protocol()) {
             let struct_block = quote! {
                 pub struct #struct_name(id);
                 impl std::ops::Deref for #struct_name {
                     type Target = id;
                     fn deref(&self) -> &Self::Target {
-                        // Both `self` and `NSObject` wrap an `id` pointer, so this should be safe
-                        //unsafe { self.0 }
                         unsafe { ::core::mem::transmute(self.0) }
                     }
                 }
                 unsafe impl objc::Message for #struct_name { }
             };
             result.push(struct_block);
+            for protocol in ctx.items().filter(|(id, _)| self.conforms_to.contains(id)).map(|(_, item)| item).collect::<Vec<&Item>>() {
+                let protocol_name = ctx.rust_ident(protocol.as_type().unwrap().name().unwrap());
+                let impl_trait = quote! {
+                    impl #protocol_name for #struct_name { }
+                };
+                result.push(impl_trait);
+            }
         }
         let ty_for_impl = struct_name;
 
@@ -3781,13 +3787,11 @@ impl CodeGenerator for ObjCInterface {
                 .collect();
             quote! {
                 impl <#(#template_names :'static),*> #trait_name <#(#template_names),*> for #ty_for_impl {
-                    //#( #impl_items )*
                 }
             }
         } else {
             quote! {
                 impl #trait_name for #ty_for_impl {
-                    //#( #impl_items )*
                 }
             }
         };
@@ -4143,8 +4147,14 @@ mod utils {
             "int64_t" => primitive_ty(ctx, "i64"),
             "uint64_t" => primitive_ty(ctx, "u64"),
 
+            "size_t" if ctx.options().size_t_is_usize => {
+                primitive_ty(ctx, "usize")
+            }
             "uintptr_t" => primitive_ty(ctx, "usize"),
 
+            "ssize_t" if ctx.options().size_t_is_usize => {
+                primitive_ty(ctx, "isize")
+            }
             "intptr_t" | "ptrdiff_t" => primitive_ty(ctx, "isize"),
             _ => return None,
         })

@@ -1,7 +1,6 @@
 //! Objective C types
 
 use super::context::{BindgenContext, ItemId};
-use super::item::Item;
 use super::function::FunctionSig;
 use super::traversal::{Trace, Tracer};
 use super::ty::TypeKind;
@@ -32,7 +31,7 @@ pub struct ObjCInterface {
     /// The list of template names almost always, ObjectType or KeyType
     pub template_names: Vec<String>,
 
-    pub conforms_to: Vec<Item>,
+    pub conforms_to: Vec<ItemId>,
 
     /// List of the methods defined in this interfae
     methods: Vec<ObjCMethod>,
@@ -155,7 +154,7 @@ impl ObjCInterface {
                                 TypeKind::ObjCInterface(ref protocol) => {
                                     if protocol.is_protocol
                                     {
-                                        println!("Checking protocol {}, ty.name {:?}", protocol.name, ty.name());
+                                        debug!("Checking protocol {}, ty.name {:?}", protocol.name, ty.name());
                                         if Some(needle.as_ref()) == ty.name() {
                                             debug!("Found conforming protocol {:?}", item);
                                             interface.conforms_to.push(id);
@@ -311,7 +310,7 @@ impl Trace for ObjCInterface {
         }
 
         for protocol in &self.conforms_to {
-            //tracer.visit(*protocol);
+            tracer.visit(*protocol);
         }
     }
 }

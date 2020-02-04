@@ -95,52 +95,72 @@ where
     }
 }
 #[repr(C)]
-#[derive(Debug, Default, Copy, Clone)]
-pub struct WithBitfield {
-    pub _bitfield_1: __BindgenBitfieldUnit<[u8; 0usize], u8>,
-    pub __bindgen_padding_0: u32,
-    pub a: ::std::os::raw::c_uint,
+#[derive(Copy, Clone)]
+pub struct timex {
+    pub tai: ::std::os::raw::c_int,
+    pub _bitfield_1: __BindgenBitfieldUnit<[u8; 44usize], u8>,
 }
-impl WithBitfield {
-    #[inline]
-    pub fn new_bitfield_1() -> __BindgenBitfieldUnit<[u8; 0usize], u8> {
-        let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<
-            [u8; 0usize],
-            u8,
-        > = Default::default();
-        __bindgen_bitfield_unit
+#[test]
+fn bindgen_test_layout_timex() {
+    assert_eq!(
+        ::std::mem::size_of::<timex>(),
+        48usize,
+        concat!("Size of: ", stringify!(timex))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<timex>(),
+        4usize,
+        concat!("Alignment of ", stringify!(timex))
+    );
+    assert_eq!(
+        unsafe { &(*(::std::ptr::null::<timex>())).tai as *const _ as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(timex),
+            "::",
+            stringify!(tai)
+        )
+    );
+}
+impl Default for timex {
+    fn default() -> Self {
+        unsafe { ::std::mem::zeroed() }
     }
 }
-#[repr(C, packed)]
-#[derive(Debug, Default, Copy, Clone)]
-pub struct WithBitfieldAndAttrPacked {
-    pub _bitfield_1: __BindgenBitfieldUnit<[u8; 1usize], u8>,
-    pub a: ::std::os::raw::c_uint,
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct timex_named {
+    pub tai: ::std::os::raw::c_int,
+    pub _bitfield_1: __BindgenBitfieldUnit<[u8; 44usize], u32>,
 }
-impl WithBitfieldAndAttrPacked {
-    #[inline]
-    pub fn new_bitfield_1() -> __BindgenBitfieldUnit<[u8; 1usize], u8> {
-        let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<
-            [u8; 1usize],
-            u8,
-        > = Default::default();
-        __bindgen_bitfield_unit
-    }
+#[test]
+fn bindgen_test_layout_timex_named() {
+    assert_eq!(
+        ::std::mem::size_of::<timex_named>(),
+        48usize,
+        concat!("Size of: ", stringify!(timex_named))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<timex_named>(),
+        4usize,
+        concat!("Alignment of ", stringify!(timex_named))
+    );
+    assert_eq!(
+        unsafe {
+            &(*(::std::ptr::null::<timex_named>())).tai as *const _ as usize
+        },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(timex_named),
+            "::",
+            stringify!(tai)
+        )
+    );
 }
-#[repr(C, packed)]
-#[derive(Debug, Default, Copy, Clone)]
-pub struct WithBitfieldAndPacked {
-    pub _bitfield_1: __BindgenBitfieldUnit<[u8; 0usize], u8>,
-    pub a: ::std::os::raw::c_uint,
-    pub __bindgen_padding_0: u8,
-}
-impl WithBitfieldAndPacked {
-    #[inline]
-    pub fn new_bitfield_1() -> __BindgenBitfieldUnit<[u8; 0usize], u8> {
-        let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<
-            [u8; 0usize],
-            u8,
-        > = Default::default();
-        __bindgen_bitfield_unit
+impl Default for timex_named {
+    fn default() -> Self {
+        unsafe { ::std::mem::zeroed() }
     }
 }
