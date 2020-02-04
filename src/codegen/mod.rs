@@ -3757,8 +3757,9 @@ impl CodeGenerator for ObjCInterface {
 
         let struct_name = ctx.rust_ident(self.struct_name());
         if !(self.is_category() || self.is_protocol()) {
+            let class_name = ctx.rust_ident(self.name());
             let struct_block = quote! {
-                pub struct #struct_name(id);
+                pub struct #struct_name(pub id);
                 impl std::ops::Deref for #struct_name {
                     type Target = id;
                     fn deref(&self) -> &Self::Target {
@@ -3766,6 +3767,13 @@ impl CodeGenerator for ObjCInterface {
                     }
                 }
                 unsafe impl objc::Message for #struct_name { }
+                impl #struct_name {
+                    pub fn alloc() -> Self {
+                        Self(unsafe {
+                            msg_send!(objc::class!(#class_name), alloc)
+                        })
+                    }
+                }
             };
             result.push(struct_block);
             for protocol in ctx.items().filter(|(id, _)| self.conforms_to.contains(id)).map(|(_, item)| item).collect::<Vec<&Item>>() {
