@@ -3708,13 +3708,11 @@ impl CodeGenerator for ObjCInterface {
         debug_assert!(item.is_enabled_for_codegen(ctx));
 
         let mut impl_items = vec![];
-        //let mut trait_items = vec![];
 
         for method in self.methods() {
             let (impl_item, _trait_item) =
                 objc_method_codegen(ctx, method, None, "");
             impl_items.push(impl_item);
-            //trait_items.push(trait_item)
         }
 
         let instance_method_names: Vec<_> =
@@ -3758,11 +3756,6 @@ impl CodeGenerator for ObjCInterface {
             }
         };
 
-        /*
-        let ty_for_impl = quote! {
-            id
-        };
-        */
         let struct_name = ctx.rust_ident(self.struct_name());
         if !(self.is_category() || self.is_protocol()) {
             let struct_block = quote! {
@@ -3770,8 +3763,6 @@ impl CodeGenerator for ObjCInterface {
                 impl std::ops::Deref for #struct_name {
                     type Target = id;
                     fn deref(&self) -> &Self::Target {
-                        // Both `self` and `NSObject` wrap an `id` pointer, so this should be safe
-                        //unsafe { self.0 }
                         unsafe { ::core::mem::transmute(self.0) }
                     }
                 }
@@ -3796,13 +3787,11 @@ impl CodeGenerator for ObjCInterface {
                 .collect();
             quote! {
                 impl <#(#template_names :'static),*> #trait_name <#(#template_names),*> for #ty_for_impl {
-                    //#( #impl_items )*
                 }
             }
         } else {
             quote! {
                 impl #trait_name for #ty_for_impl {
-                    //#( #impl_items )*
                 }
             }
         };
