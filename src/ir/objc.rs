@@ -154,7 +154,7 @@ impl ObjCInterface {
                                 TypeKind::ObjCInterface(ref protocol) => {
                                     if protocol.is_protocol
                                     {
-                                        println!("Checking protocol {}, ty.name {:?}", protocol.name, ty.name());
+                                        debug!("Checking protocol {}, ty.name {:?}", protocol.name, ty.name());
                                         if Some(needle.as_ref()) == ty.name() {
                                             debug!("Found conforming protocol {:?}", item);
                                             interface.conforms_to.push(id);
