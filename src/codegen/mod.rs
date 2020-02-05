@@ -3753,6 +3753,7 @@ impl CodeGenerator for ObjCInterface {
         if !(self.is_category() || self.is_protocol()) {
             let class_name = ctx.rust_ident(self.name());
             let struct_block = quote! {
+                #[repr(transparent)]
                 pub struct #struct_name(pub id);
                 impl std::ops::Deref for #struct_name {
                     type Target = id;
