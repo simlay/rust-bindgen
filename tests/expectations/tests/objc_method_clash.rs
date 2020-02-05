@@ -38,9 +38,6 @@ pub trait interface_Foo: Sized + std::ops::Deref + objc::Message {
     where
         <Self as std::ops::Deref>::Target: objc::Message + Sized,
     {
-        msg_send!(
-            objc::runtime::Class::get("Foo").expect("Couldn't find Foo"),
-            foo
-        )
+        msg_send!(class!(Foo), foo)
     }
 }

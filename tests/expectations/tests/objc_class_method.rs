@@ -32,46 +32,31 @@ pub trait interface_Foo: Sized + std::ops::Deref + objc::Message {
     where
         <Self as std::ops::Deref>::Target: objc::Message + Sized,
     {
-        msg_send!(
-            objc::runtime::Class::get("Foo").expect("Couldn't find Foo"),
-            method
-        )
+        msg_send!(class!(Foo), method)
     }
     unsafe fn methodWithInt_(foo: ::std::os::raw::c_int)
     where
         <Self as std::ops::Deref>::Target: objc::Message + Sized,
     {
-        msg_send!(
-            objc::runtime::Class::get("Foo").expect("Couldn't find Foo"),
-            methodWithInt: foo
-        )
+        msg_send!(class!(Foo), methodWithInt: foo)
     }
     unsafe fn methodWithFoo_(foo: id)
     where
         <Self as std::ops::Deref>::Target: objc::Message + Sized,
     {
-        msg_send!(
-            objc::runtime::Class::get("Foo").expect("Couldn't find Foo"),
-            methodWithFoo: foo
-        )
+        msg_send!(class!(Foo), methodWithFoo: foo)
     }
     unsafe fn methodReturningInt() -> ::std::os::raw::c_int
     where
         <Self as std::ops::Deref>::Target: objc::Message + Sized,
     {
-        msg_send!(
-            objc::runtime::Class::get("Foo").expect("Couldn't find Foo"),
-            methodReturningInt
-        )
+        msg_send!(class!(Foo), methodReturningInt)
     }
     unsafe fn methodReturningFoo() -> *mut id
     where
         <Self as std::ops::Deref>::Target: objc::Message + Sized,
     {
-        msg_send!(
-            objc::runtime::Class::get("Foo").expect("Couldn't find Foo"),
-            methodReturningFoo
-        )
+        msg_send!(class!(Foo), methodReturningFoo)
     }
     unsafe fn methodWithArg1_andArg2_andArg3_(
         intvalue: ::std::os::raw::c_int,
@@ -80,6 +65,6 @@ pub trait interface_Foo: Sized + std::ops::Deref + objc::Message {
     ) where
         <Self as std::ops::Deref>::Target: objc::Message + Sized,
     {
-        msg_send ! ( objc :: runtime :: Class :: get ( "Foo" ) . expect ( "Couldn't find Foo" ) , methodWithArg1 : intvalue andArg2 : ptr andArg3 : floatvalue )
+        msg_send ! ( class ! ( Foo ) , methodWithArg1 : intvalue andArg2 : ptr andArg3 : floatvalue )
     }
 }
