@@ -12,6 +12,7 @@
 extern crate objc;
 #[allow(non_camel_case_types)]
 pub type id = *mut objc::runtime::Object;
+#[repr(transparent)]
 pub struct struct_Foo(pub id);
 impl std::ops::Deref for struct_Foo {
     type Target = id;
@@ -36,6 +37,7 @@ pub trait interface_Foo<ObjectType>:
         msg_send!(self, get)
     }
 }
+#[repr(transparent)]
 pub struct struct_FooMultiGeneric(pub id);
 impl std::ops::Deref for struct_FooMultiGeneric {
     type Target = id;

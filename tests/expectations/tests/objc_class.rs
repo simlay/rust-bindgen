@@ -15,6 +15,7 @@ pub type id = *mut objc::runtime::Object;
 extern "C" {
     pub static mut fooVar: *mut id;
 }
+#[repr(transparent)]
 pub struct struct_Foo(pub id);
 impl std::ops::Deref for struct_Foo {
     type Target = id;
