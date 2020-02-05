@@ -109,7 +109,7 @@ impl ObjCInterface {
         self.is_protocol
     }
 
-    /// Is this a protocol?
+    /// Is this a category?
     pub fn is_category(&self) -> bool {
         self.category.is_some()
     }

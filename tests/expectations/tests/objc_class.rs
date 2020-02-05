@@ -15,14 +15,19 @@ pub type id = *mut objc::runtime::Object;
 extern "C" {
     pub static mut fooVar: *mut id;
 }
-pub struct struct_Foo(id);
+pub struct struct_Foo(pub id);
 impl std::ops::Deref for struct_Foo {
     type Target = id;
     fn deref(&self) -> &Self::Target {
-        unsafe { ::core::mem::transmute(self.0) }
+        &self.0
     }
 }
 unsafe impl objc::Message for struct_Foo {}
+impl struct_Foo {
+    pub fn alloc() -> Self {
+        Self(unsafe { msg_send!(objc::class!(Foo), alloc) })
+    }
+}
 impl interface_Foo for struct_Foo {}
 pub trait interface_Foo: Sized + std::ops::Deref + objc::Message {
     unsafe fn method(self)

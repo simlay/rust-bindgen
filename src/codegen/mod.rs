@@ -3644,7 +3644,7 @@ fn objc_method_codegen(
     method: &ObjCMethod,
     class_name: Option<&str>,
     prefix: &str,
-) -> (proc_macro2::TokenStream, proc_macro2::TokenStream) {
+) -> proc_macro2::TokenStream {
     let signature = method.signature();
     let fn_args = utils::fnsig_arguments(ctx, signature);
     let fn_ret = utils::fnsig_return_ty(ctx, signature);
@@ -3681,19 +3681,13 @@ fn objc_method_codegen(
         }
     };
 
-    let method_name =
-        ctx.rust_ident(format!("{}{}", prefix, method.rust_name()));
+    let method_name = ctx.rust_ident(format!("{}{}", prefix, method.rust_name()));
 
-    (
-        quote! {
-            unsafe fn #method_name #sig where <Self as std::ops::Deref>::Target: objc::Message + Sized {
-                #body
-            }
-        },
-        quote! {
-            unsafe fn #method_name #sig ;
-        },
-    )
+    quote! {
+        unsafe fn #method_name #sig where <Self as std::ops::Deref>::Target: objc::Message + Sized {
+            #body
+        }
+    }
 }
 
 impl CodeGenerator for ObjCInterface {
@@ -3710,7 +3704,7 @@ impl CodeGenerator for ObjCInterface {
         let mut impl_items = vec![];
 
         for method in self.methods() {
-            let (impl_item, _trait_item) =
+            let impl_item =
                 objc_method_codegen(ctx, method, None, "");
             impl_items.push(impl_item);
         }
@@ -3722,7 +3716,7 @@ impl CodeGenerator for ObjCInterface {
             let ambiquity =
                 instance_method_names.contains(&class_method.rust_name());
             let prefix = if ambiquity { "class_" } else { "" };
-            let (impl_item, _trait_item) = objc_method_codegen(
+            let impl_item = objc_method_codegen(
                 ctx,
                 class_method,
                 Some(self.name()),
@@ -3763,7 +3757,7 @@ impl CodeGenerator for ObjCInterface {
                 impl std::ops::Deref for #struct_name {
                     type Target = id;
                     fn deref(&self) -> &Self::Target {
-                        unsafe { ::core::mem::transmute(self.0) }
+                        &self.0
                     }
                 }
                 unsafe impl objc::Message for #struct_name { }
@@ -3776,8 +3770,9 @@ impl CodeGenerator for ObjCInterface {
                 }
             };
             result.push(struct_block);
-            for protocol in ctx.items().filter(|(id, _)| self.conforms_to.contains(id)).map(|(_, item)| item).collect::<Vec<&Item>>() {
-                let protocol_name = ctx.rust_ident(protocol.as_type().unwrap().name().unwrap());
+            for protocol_id in self.conforms_to.iter() {
+                let protocol_name =
+                    ctx.rust_ident(ctx.resolve_type(protocol_id.expect_type_id(ctx)).name().unwrap());
                 let impl_trait = quote! {
                     impl #protocol_name for #struct_name { }
                 };
