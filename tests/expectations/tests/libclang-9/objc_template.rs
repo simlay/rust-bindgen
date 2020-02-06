@@ -15,9 +15,9 @@ pub type id = *mut objc::runtime::Object;
 #[repr(transparent)]
 pub struct struct_Foo(pub id);
 impl std::ops::Deref for struct_Foo {
-    type Target = id;
+    type Target = objc::runtime::Object;
     fn deref(&self) -> &Self::Target {
-        &self.0
+        unsafe { &*self.0 }
     }
 }
 unsafe impl objc::Message for struct_Foo {}
@@ -27,9 +27,7 @@ impl struct_Foo {
     }
 }
 impl<ObjectType: 'static> interface_Foo<ObjectType> for struct_Foo {}
-pub trait interface_Foo<ObjectType>:
-    Sized + std::ops::Deref + objc::Message
-{
+pub trait interface_Foo<ObjectType>: Sized + std::ops::Deref {
     unsafe fn get(self) -> u64
     where
         <Self as std::ops::Deref>::Target: objc::Message + Sized,
@@ -40,9 +38,9 @@ pub trait interface_Foo<ObjectType>:
 #[repr(transparent)]
 pub struct struct_FooMultiGeneric(pub id);
 impl std::ops::Deref for struct_FooMultiGeneric {
-    type Target = id;
+    type Target = objc::runtime::Object;
     fn deref(&self) -> &Self::Target {
-        &self.0
+        unsafe { &*self.0 }
     }
 }
 unsafe impl objc::Message for struct_FooMultiGeneric {}
@@ -56,7 +54,7 @@ impl<KeyType: 'static, ObjectType: 'static>
 {
 }
 pub trait interface_FooMultiGeneric<KeyType, ObjectType>:
-    Sized + std::ops::Deref + objc::Message
+    Sized + std::ops::Deref
 {
     unsafe fn objectForKey_(self, key: u64) -> u64
     where

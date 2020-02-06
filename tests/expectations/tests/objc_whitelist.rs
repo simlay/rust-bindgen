@@ -13,7 +13,4 @@ extern crate objc;
 #[allow(non_camel_case_types)]
 pub type id = *mut objc::runtime::Object;
 impl WhitelistMe_InterestingCategory for struct_WhitelistMe {}
-pub trait WhitelistMe_InterestingCategory:
-    Sized + std::ops::Deref + objc::Message
-{
-}
+pub trait WhitelistMe_InterestingCategory: Sized + std::ops::Deref {}

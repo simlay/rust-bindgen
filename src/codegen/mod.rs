@@ -3723,7 +3723,7 @@ impl CodeGenerator for ObjCInterface {
 
         let trait_name = ctx.rust_ident(self.rust_name());
         let trait_constraints = quote! {
-            Sized + std::ops::Deref + objc::Message
+            Sized + std::ops::Deref
         };
         let trait_block = if self.is_template() {
             let template_names: Vec<Ident> = self
@@ -3752,9 +3752,11 @@ impl CodeGenerator for ObjCInterface {
                 #[repr(transparent)]
                 pub struct #struct_name(pub id);
                 impl std::ops::Deref for #struct_name {
-                    type Target = id;
+                    type Target = objc::runtime::Object;
                     fn deref(&self) -> &Self::Target {
-                        &self.0
+                        unsafe {
+                            &*self.0
+                        }
                     }
                 }
                 unsafe impl objc::Message for #struct_name { }

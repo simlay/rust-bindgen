@@ -15,9 +15,9 @@ pub type id = *mut objc::runtime::Object;
 #[repr(transparent)]
 pub struct struct_Foo(pub id);
 impl std::ops::Deref for struct_Foo {
-    type Target = id;
+    type Target = objc::runtime::Object;
     fn deref(&self) -> &Self::Target {
-        &self.0
+        unsafe { &*self.0 }
     }
 }
 unsafe impl objc::Message for struct_Foo {}
@@ -27,7 +27,7 @@ impl struct_Foo {
     }
 }
 impl interface_Foo for struct_Foo {}
-pub trait interface_Foo: Sized + std::ops::Deref + objc::Message {
+pub trait interface_Foo: Sized + std::ops::Deref {
     unsafe fn method()
     where
         <Self as std::ops::Deref>::Target: objc::Message + Sized,
