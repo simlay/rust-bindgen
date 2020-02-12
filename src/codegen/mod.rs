@@ -3394,9 +3394,16 @@ impl TryToRustTy for Type {
             TypeKind::ObjCSel => Ok(quote! {
                 objc::runtime::Sel
             }),
-            TypeKind::ObjCId | TypeKind::ObjCInterface(..) => Ok(quote! {
-                id
-            }),
+            TypeKind::ObjCId => {
+                Ok(quote! {
+                    id
+                })
+            }
+            TypeKind::ObjCInterface(..) => {
+                Ok(quote! {
+                    objc::runtime::Object
+                })
+            }
             ref u @ TypeKind::UnresolvedTypeRef(..) => {
                 unreachable!("Should have been resolved after parsing {:?}!", u)
             }
