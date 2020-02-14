@@ -3757,6 +3757,7 @@ impl CodeGenerator for ObjCInterface {
             let class_name = ctx.rust_ident(self.name());
             let struct_block = quote! {
                 #[repr(transparent)]
+                #[derive(Clone,Copy,Debug)]
                 pub struct #struct_name(pub id);
                 impl std::ops::Deref for #struct_name {
                     type Target = objc::runtime::Object;
