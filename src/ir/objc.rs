@@ -83,15 +83,15 @@ impl ObjCInterface {
             format!("{}_{}", self.name(), cat)
         } else {
             if self.is_protocol {
-                format!("protocol_{}", self.name())
+                format!("P{}", self.name())
             } else {
-                format!("interface_{}", self.name().to_owned())
+                format!("I{}", self.name().to_owned())
             }
         }
     }
 
     pub fn struct_name(&self) -> String {
-        format!("struct_{}", self.name().to_owned())
+        format!("{}", self.name().to_owned())
     }
 
     /// Is this a template interface?
