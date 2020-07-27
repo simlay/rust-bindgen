@@ -449,7 +449,7 @@ impl CodeGenerator for Item {
             // TODO(emilio, #453): Figure out what to do when this happens
             // legitimately, we could track the opaque stuff and disable the
             // assertion there I guess.
-            error!("Found non-whitelisted item in code generation: {:?}", self);
+            warn!("Found non-whitelisted item in code generation: {:?}", self);
         }
 
         result.set_seen(self.id());
@@ -3434,6 +3434,15 @@ impl TryToRustTy for Type {
 
                 let inner =
                     inner.into_resolver().through_type_refs().resolve(ctx);
+                let mut is_objc_pointer = false;
+                if let Some(ty) = inner.kind().as_type() {
+                    match ty.kind() {
+                        TypeKind::ObjCInterface(..) => {
+                            is_objc_pointer = true;
+                        },
+                        _ => {}
+                    }
+                }
                 let inner_ty = inner.expect_type();
 
                 // Regardless if we can properly represent the inner type, we
@@ -3444,7 +3453,7 @@ impl TryToRustTy for Type {
 
                 // Avoid the first function pointer level, since it's already
                 // represented in Rust.
-                if inner_ty.canonical_type(ctx).is_function() {
+                if inner_ty.canonical_type(ctx).is_function() || is_objc_pointer {
                     Ok(ty)
                 } else {
                     Ok(ty.to_ptr(is_const))
@@ -3463,9 +3472,13 @@ impl TryToRustTy for Type {
             TypeKind::ObjCId => Ok(quote! {
                 id
             }),
-            TypeKind::ObjCInterface(..) => Ok(quote! {
-                objc::runtime::Object
-            }),
+            TypeKind::ObjCInterface(ref interface) => {
+                let name = ctx.rust_ident(interface.name());
+                Ok(quote! {
+                    //objc::runtime::Object
+                    #name
+                })
+            },
             ref u @ TypeKind::UnresolvedTypeRef(..) => {
                 unreachable!("Should have been resolved after parsing {:?}!", u)
             }
@@ -3725,7 +3738,7 @@ fn objc_method_codegen(
         }
     } else {
         let fn_args = fn_args.clone();
-        let args = iter::once(quote! { self }).chain(fn_args.into_iter());
+        let args = iter::once(quote!{ self }).chain(fn_args.into_iter());
         quote! {
             ( #( #args ),* ) #fn_ret
         }
@@ -3960,7 +3973,7 @@ pub(crate) fn codegen(
                     "Your dot file was generated successfully into: {}",
                     path
                 ),
-                Err(e) => error!("{}", e),
+                Err(e) => warn!("{}", e),
             }
         }
 
@@ -4341,11 +4354,13 @@ mod utils {
                     TypeKind::Pointer(inner) => {
                         let inner = ctx.resolve_item(inner);
                         let inner_ty = inner.expect_type();
-                        if let TypeKind::ObjCInterface(_) =
+                        if let TypeKind::ObjCInterface(ref interface) =
                             *inner_ty.canonical_type(ctx).kind()
                         {
+                            let name = ctx.rust_ident(interface.name());
                             quote! {
-                                id
+                                #name
+                                //id
                             }
                         } else {
                             arg_item.to_rust_ty_or_opaque(ctx, &())
