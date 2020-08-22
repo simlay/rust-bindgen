@@ -3810,7 +3810,7 @@ fn objc_method_codegen(
         }
     } else {
         let fn_args = fn_args.clone();
-        let args = iter::once(quote! { self }).chain(fn_args.into_iter());
+        let args = iter::once(quote! { &self }).chain(fn_args.into_iter());
         quote! {
             ( #( #args ),* ) #fn_ret
         }
@@ -3829,7 +3829,7 @@ fn objc_method_codegen(
         }
     } else {
         quote! {
-            msg_send!(self, #methods_and_args)
+            msg_send!(*self, #methods_and_args)
         }
     };
 
@@ -3905,8 +3905,7 @@ impl CodeGenerator for ObjCInterface {
         if !self.is_category() && !self.is_protocol() {
             let struct_block = quote! {
                 #[repr(transparent)]
-                #[derive(Clone, Copy)]
-                pub struct #class_name(pub id);
+                pub struct #class_name(id);
                 impl std::ops::Deref for #class_name {
                     type Target = objc::runtime::Object;
                     fn deref(&self) -> &Self::Target {
@@ -3915,11 +3914,35 @@ impl CodeGenerator for ObjCInterface {
                         }
                     }
                 }
+                impl Clone for #class_name {
+                    fn clone(&self) -> Self {
+                        Self(unsafe {
+                            msg_send!(*self, retain)
+                        })
+                    }
+                }
+                impl Drop for #class_name {
+                    fn drop(&mut self) {
+                        unsafe {
+                            msg_send!(*self, release)
+                        }
+                    }
+                }
                 unsafe impl objc::Message for #class_name { }
                 impl #class_name {
+
+                    /// Get the internal `id` of this class. This is unsafe because the user of
+                    /// this function must release the ID after is't used.
+                    pub unsafe fn id(self) -> id {
+                        msg_send!(self, retain)
+                    }
+                    pub fn from_id(id: id) -> Self {
+                        Self(id)
+                    }
                     pub fn alloc() -> Self {
                         Self(unsafe {
-                            msg_send!(objc::class!(#class_name), alloc)
+                            let val : id = msg_send!(objc::class!(#class_name), alloc);
+                            msg_send!(val, retain)
                         })
                     }
                 }

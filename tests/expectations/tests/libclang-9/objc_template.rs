@@ -11,16 +11,33 @@ extern crate objc;
 #[allow(non_camel_case_types)]
 pub type id = *mut objc::runtime::Object;
 #[repr(transparent)]
-#[derive(Clone, Copy)]
-pub struct Foo(pub id);
+pub struct Foo(id);
 impl std::ops::Deref for Foo {
     type Target = objc::runtime::Object;
     fn deref(&self) -> &Self::Target {
         unsafe { &*self.0 }
     }
 }
+impl Clone for Foo {
+    fn clone(&self) -> Self {
+        Self(unsafe { msg_send!(self, retain) })
+    }
+}
+impl Drop for Foo {
+    fn drop(&mut self) {
+        unsafe { msg_send!(self, release) }
+    }
+}
 unsafe impl objc::Message for Foo {}
 impl Foo {
+    /// Get the internal `id` of this class. This is unsafe because the user of
+    /// this function must release the ID after is't used.
+    pub unsafe fn id(&self) -> id {
+        msg_send!(self, retain)
+    }
+    pub fn from_id(id: id) -> Self {
+        Self(id)
+    }
     pub fn alloc() -> Self {
         Self(unsafe { msg_send!(objc::class!(Foo), alloc) })
     }
@@ -35,16 +52,33 @@ pub trait IFoo<ObjectType>: Sized + std::ops::Deref {
     }
 }
 #[repr(transparent)]
-#[derive(Clone, Copy)]
-pub struct FooMultiGeneric(pub id);
+pub struct FooMultiGeneric(id);
 impl std::ops::Deref for FooMultiGeneric {
     type Target = objc::runtime::Object;
     fn deref(&self) -> &Self::Target {
         unsafe { &*self.0 }
     }
 }
+impl Clone for FooMultiGeneric {
+    fn clone(&self) -> Self {
+        Self(unsafe { msg_send!(self, retain) })
+    }
+}
+impl Drop for FooMultiGeneric {
+    fn drop(&mut self) {
+        unsafe { msg_send!(self, release) }
+    }
+}
 unsafe impl objc::Message for FooMultiGeneric {}
 impl FooMultiGeneric {
+    /// Get the internal `id` of this class. This is unsafe because the user of
+    /// this function must release the ID after is't used.
+    pub unsafe fn id(&self) -> id {
+        msg_send!(self, retain)
+    }
+    pub fn from_id(id: id) -> Self {
+        Self(id)
+    }
     pub fn alloc() -> Self {
         Self(unsafe { msg_send!(objc::class!(FooMultiGeneric), alloc) })
     }
