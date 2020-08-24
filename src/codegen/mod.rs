@@ -3901,11 +3901,13 @@ impl CodeGenerator for ObjCInterface {
             }
         };
 
+        let class_name_str = self.name();
+
         let class_name = ctx.rust_ident(self.name());
         if !self.is_category() && !self.is_protocol() {
             let struct_block = quote! {
                 #[repr(transparent)]
-                pub struct #class_name(id);
+                pub struct #class_name(pub id);
                 impl std::ops::Deref for #class_name {
                     type Target = objc::runtime::Object;
                     fn deref(&self) -> &Self::Target {
@@ -3916,16 +3918,21 @@ impl CodeGenerator for ObjCInterface {
                 }
                 impl Clone for #class_name {
                     fn clone(&self) -> Self {
-                        Self(unsafe {
+                        println!("{:?} - cloning {:?}, retain count: {:?}", self.0, #class_name_str, self.get_retain_count());
+                        let ret = Self(unsafe {
                             msg_send!(*self, retain)
-                        })
+                        });
+                        println!("{:?} - cloned {:?}, retain count: {:?}", self.0, #class_name_str, self.get_retain_count());
+                        ret
                     }
                 }
                 impl Drop for #class_name {
                     fn drop(&mut self) {
+                        println!("{:?} - releasing {:?}, retain count: {:?}", self.0, #class_name_str, self.get_retain_count());
                         unsafe {
-                            msg_send!(*self, release)
+                            let _ : () = msg_send!(*self, release);
                         }
+                        println!("{:?} - released {:?}, retain count: {:?}", self.0, #class_name_str, self.get_retain_count());
                     }
                 }
                 unsafe impl objc::Message for #class_name { }
@@ -3934,16 +3941,38 @@ impl CodeGenerator for ObjCInterface {
                     /// Get the internal `id` of this class. This is unsafe because the user of
                     /// this function must release the ID after is't used.
                     pub unsafe fn id(self) -> id {
-                        msg_send!(self, retain)
+                        println!("{:?} - getting id() for {:?}, retain count: {:?}", self.0, #class_name_str, self.get_retain_count());
+                        //self.0
+                        let ret : id = msg_send!(self, retain);
+
+                        println!("{:?} -> {:?} - got id() for {:?}, retain count: {:?}", self.0, ret, #class_name_str, self.get_retain_count());
+                        ret
                     }
-                    pub fn from_id(id: id) -> Self {
+                    pub fn from_id(id: id, retain: bool) -> Self {
+                        let count = unsafe {CFGetRetainCount(id as *const std::ffi::c_void)};
+                        println!("{:?} - getting from_id() for {:?}, retain count: {:?}", id, #class_name_str, count);
+                        if retain {
+                            unsafe { let _ : () = msg_send!(id, retain); }
+                        }
+                        let count = unsafe {CFGetRetainCount(id as *const std::ffi::c_void)};
+                        println!("{:?} - got from_id() for {:?}, retain count: {:?}", id, #class_name_str, count);
                         Self(id)
                     }
+
+                    pub fn get_retain_count(&self) -> i64 {
+                        unsafe {CFGetRetainCount(self.0 as *const std::ffi::c_void)}
+                    }
                     pub fn alloc() -> Self {
-                        Self(unsafe {
+                        //let ret_id : id =
+                        let ret = Self(unsafe {
+                            msg_send!(objc::class!(#class_name), alloc)
+                            /*
                             let val : id = msg_send!(objc::class!(#class_name), alloc);
                             msg_send!(val, retain)
-                        })
+                            */
+                        });
+                        println!("{:?} - alloc() for {:?}, retain_count: {:?}", ret.0, #class_name_str, ret.get_retain_count());
+                        ret
                     }
                 }
             };
@@ -3988,6 +4017,17 @@ impl CodeGenerator for ObjCInterface {
                             impl #parent_name for #class_name { }
                         }
                     };
+                    if !parent.is_template() {
+                        let parent_struct_name = ctx.rust_ident(parent.name());
+                        let from_block = quote! {
+                            impl From<#class_name> for #parent_struct_name {
+                                fn from(child: #class_name) -> #parent_struct_name {
+                                    #parent_struct_name(unsafe{child.id()})
+                                }
+                            }
+                        };
+                        result.push(from_block);
+                    }
                     result.push(impl_trait);
                     for (category_name, category_template_names) in
                         &parent.categories
