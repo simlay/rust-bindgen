@@ -3987,6 +3987,7 @@ impl CodeGenerator for ObjCInterface {
                             }
                         };
                         result.push(impl_trait);
+                    }
                     for protocol_id in parent.conforms_to.iter() {
                         if !protocol_set.contains(protocol_id) {
                             protocol_set.insert(*protocol_id);
